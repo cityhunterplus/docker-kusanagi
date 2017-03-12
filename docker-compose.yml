@@ -1,0 +1,54 @@
+version: '2'
+
+services:
+  kusanagi-data:
+    #container_name: kusanagi-data
+    image: busybox
+    restart: always
+    stdin_open: true
+    tty: true
+    volumes:
+      - /var/lib/mysql
+      - /etc/nginx/conf.d
+      - /etc/httpd/conf.d
+      - /etc/kusanagi.d
+      #- /home/kusanagi
+      - ./kusanagi:/home/kusanagi
+    command: /bin/sh
+
+  kusanagi-nginx:
+    #container_name: kusanagi-nginx
+    image: primestrategy/kusanagi-nginx:1.10.0-1
+    environment:
+      PROFILE: kusanagi
+      FQDN: 192.168.99.100
+      WPLANG: ja
+      BCACHE: "on"
+      FCACHE: "on"
+    volumes_from:
+      - kusanagi-data
+    links:
+      - kusanagi-php7:php
+    ports:
+      - "8200:80"
+      # MariaDB のポートは公開しないようにコメントアウト
+      #- "443:443"
+
+  kusanagi-mariadb:
+    #container_name: kusanagi-mariadb
+    image: mariadb:10.0.24
+    environment:
+      MYSQL_ROOT_PASSWORD: Password1
+      MYSQL_USER:     kusanagiadmin
+      MYSQL_PASSWORD: Password2
+      MYSQL_DATABASE: wordpress
+    volumes_from:
+      - kusanagi-data
+
+  kusanagi-php7:
+    #container_name: kusanagi-php7
+    image: primestrategy/kusanagi-php7:7.0.6-1
+    links:
+      - kusanagi-mariadb:mysql
+    volumes_from:
+      - kusanagi-data
